@@ -1,0 +1,18 @@
+{
+	"ForceInput_usage": {
+		"en-us": "Usage: <name> <input> [parameter]",
+		"ru-ru": "Использование: <имя> <инпут> [параметр]"
+	},
+	"ForceInput_AimNotFound": {
+		"en-us": "Target not found",
+		"ru-ru": "Цель под прицелом не найдена"
+	},
+	"ForceInput_EntitiesNotFound": {
+		"en-us": "Entities not found",
+		"ru-ru": "Энтити не найдены"
+	},
+	"ForceInput_EntitiesFound": {
+		"en-us": "Input successful on {0} entities",
+		"ru-ru": "Инпут выполнен удачно для {0} энтити"
+	}
+}
