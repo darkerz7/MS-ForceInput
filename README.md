@@ -11,6 +11,11 @@ Allows admins to force inputs on entities. (ent_fire)
 2. Compile or copy MS-ForceInput to `sharp/modules/MS-ForceInput` folger
 3. Copy ForceInput.json to `sharp/locales` folger
 
+## Admin privileges
+Privilege | Description
+--- | ---
+`forceinput:entfire` | Gives access to the command
+
 ## Commands:
 `ms_entfire <name> <input> [parameter]` - to force inputs on entities(Need: `entfire` permission)<br>
 `ms_forceinput <name> <input> [parameter]` - to force inputs on entities(Need: `entfire` permission)
