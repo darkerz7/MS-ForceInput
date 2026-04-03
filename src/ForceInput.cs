@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Sharp.Modules.AdminManager.Shared;
 using Sharp.Modules.LocalizerManager.Shared;
 using Sharp.Shared;
 using Sharp.Shared.Definition;
@@ -18,44 +19,63 @@ namespace MS_ForceInput
         public ForceInput(ISharedSystem sharedSystem, string dllPath, string sharpPath, Version version, IConfiguration coreConfiguration, bool hotReload)
         {
             _modules = sharedSystem.GetSharpModuleManager();
-            _clients = sharedSystem.GetClientManager();
             _entities = sharedSystem.GetEntityManager();
             _logger = sharedSystem.GetLoggerFactory().CreateLogger<ForceInput>();
             _physicsquery = sharedSystem.GetPhysicsQueryManager();
         }
         private readonly ISharpModuleManager _modules;
-        private readonly IClientManager _clients;
         private readonly IEntityManager _entities;
         private readonly ILogger<ForceInput> _logger;
         private readonly IPhysicsQueryManager _physicsquery;
 
         private IModSharpModuleInterface<ILocalizerManager>? _localizer;
+        private static IModSharpModuleInterface<IAdminManager>? _adminManager;
+        private bool _AMInit = false;
 
-        public bool Init()
+        public bool Init() => true;
+
+        private void InitializePermissions()
         {
-            _clients.InstallCommandCallback("entfire", OnEntFire);
-            _clients.InstallCommandCallback("forceinput", OnEntFire);
-            return true;
+            if (_adminManager?.Instance is not { } adminManager || _AMInit) return;
+
+            try
+            {
+                var registry = adminManager.GetCommandRegistry(DisplayName);
+
+                registry.RegisterPermissions(["forceinput:entfire"]);
+                registry.RegisterAdminCommand("entfire", OnEntFireCallback, ["forceinput:entfire"]);
+                registry.RegisterAdminCommand("forceinput", OnEntFireCallback, ["forceinput:entfire"]);
+
+                _AMInit = true;
+            }
+            catch (InvalidOperationException) { }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Failed to initialize admin permissions.");
+            }
+        }
+
+        public void PostInit()
+        {
+            TryResolveAdminManager();
+        }
+
+        public void OnLibraryConnected(string name)
+        {
+            if (name.Equals("Sharp.Modules.AdminManager", StringComparison.OrdinalIgnoreCase)) TryResolveAdminManager();
         }
 
         public void OnAllModulesLoaded()
         {
             GetLocalizer()?.LoadLocaleFile("ForceInput");
+            TryResolveAdminManager();
         }
 
-        public void Shutdown()
-        {
-            _clients.RemoveCommandCallback("entfire", OnEntFire);
-            _clients.RemoveCommandCallback("forceinput", OnEntFire);
-        }
+        public void Shutdown() { }
 
-        private ECommandAction OnEntFire(IGameClient client, StringCommand command)
+        private void OnEntFireCallback(IGameClient? client, StringCommand command)
         {
-            return OnAdminCommand(client, command, "entfire", OnEntFireCallback);
-        }
-
-        private void OnEntFireCallback(IGameClient client, StringCommand command)
-        {
+            if (client == null) return;
             var player = client.GetPlayerController();
             if (player != null)
             {
@@ -63,8 +83,8 @@ namespace MS_ForceInput
                 {
                     if (GetLocalizer() is { } lm)
                     {
-                        var localizer = lm.GetLocalizer(client);
-                        player.Print(command.ChatTrigger ? HudPrintChannel.Chat : HudPrintChannel.Console, $" {ChatColor.Blue}[{ChatColor.Green}ForceInput{ChatColor.Blue}]{ChatColor.White} {localizer.Format("ForceInput_usage")}");
+                        var localizer = lm.For(client);
+                        player.Print(command.ChatTrigger ? HudPrintChannel.Chat : HudPrintChannel.Console, $" {ChatColor.Blue}[{ChatColor.Green}ForceInput{ChatColor.Blue}]{ChatColor.White} {localizer.Text("ForceInput_usage")}");
                     }
                     return;
                 }
@@ -91,8 +111,8 @@ namespace MS_ForceInput
                             {
                                 if (GetLocalizer() is { } lm)
                                 {
-                                    var localizer = lm.GetLocalizer(client);
-                                    player.Print(command.ChatTrigger ? HudPrintChannel.Chat : HudPrintChannel.Console, $" {ChatColor.Blue}[{ChatColor.Green}ForceInput{ChatColor.Blue}]{ChatColor.White} {localizer.Format("ForceInput_AimNotFound")}");
+                                    var localizer = lm.For(client);
+                                    player.Print(command.ChatTrigger ? HudPrintChannel.Chat : HudPrintChannel.Console, $" {ChatColor.Blue}[{ChatColor.Green}ForceInput{ChatColor.Blue}]{ChatColor.White} {localizer.Text("ForceInput_AimNotFound")}");
                                 }
                                 return;
                             } else
@@ -106,8 +126,8 @@ namespace MS_ForceInput
                         {
                             if (GetLocalizer() is { } lm)
                             {
-                                var localizer = lm.GetLocalizer(client);
-                                player.Print(command.ChatTrigger ? HudPrintChannel.Chat : HudPrintChannel.Console, $" {ChatColor.Blue}[{ChatColor.Green}ForceInput{ChatColor.Blue}]{ChatColor.White} {localizer.Format("ForceInput_AimNotFound")}");
+                                var localizer = lm.For(client);
+                                player.Print(command.ChatTrigger ? HudPrintChannel.Chat : HudPrintChannel.Console, $" {ChatColor.Blue}[{ChatColor.Green}ForceInput{ChatColor.Blue}]{ChatColor.White} {localizer.Text("ForceInput_AimNotFound")}");
                             }
                             return;
                         }
@@ -151,8 +171,8 @@ namespace MS_ForceInput
                 {
                     if (GetLocalizer() is { } lm)
                     {
-                        var localizer = lm.GetLocalizer(client);
-                        player.Print(command.ChatTrigger ? HudPrintChannel.Chat : HudPrintChannel.Console, $" {ChatColor.Blue}[{ChatColor.Green}ForceInput{ChatColor.Blue}]{ChatColor.White} {localizer.Format("ForceInput_EntitiesNotFound")}");
+                        var localizer = lm.For(client);
+                        player.Print(command.ChatTrigger ? HudPrintChannel.Chat : HudPrintChannel.Console, $" {ChatColor.Blue}[{ChatColor.Green}ForceInput{ChatColor.Blue}]{ChatColor.White} {localizer.Text("ForceInput_EntitiesNotFound")}");
                     }
                     PrintToServer(player.PlayerName, $"Entities not found", command.ArgString);
                 }
@@ -160,8 +180,8 @@ namespace MS_ForceInput
                 {
                     if (GetLocalizer() is { } lm)
                     {
-                        var localizer = lm.GetLocalizer(client);
-                        player.Print(command.ChatTrigger ? HudPrintChannel.Chat : HudPrintChannel.Console, $" {ChatColor.Blue}[{ChatColor.Green}ForceInput{ChatColor.Blue}]{ChatColor.White} {localizer.Format("ForceInput_EntitiesFound", iFoundEnts)}");
+                        var localizer = lm.For(client);
+                        player.Print(command.ChatTrigger ? HudPrintChannel.Chat : HudPrintChannel.Console, $" {ChatColor.Blue}[{ChatColor.Green}ForceInput{ChatColor.Blue}]{ChatColor.White} {localizer.Text("ForceInput_EntitiesFound", iFoundEnts)}");
                     }
                     PrintToServer(player.PlayerName, $"Input successful on {iFoundEnts} entities", command.ArgString);
                 }
@@ -183,42 +203,6 @@ namespace MS_ForceInput
             _logger.LogInformation(sLogMessage);
         }
 
-        delegate void AdminCommandCallback(IGameClient client, StringCommand command);
-        private ECommandAction OnAdminCommand(IGameClient client, StringCommand command, string permission, AdminCommandCallback callback)
-        {
-            if (callback is not null && client.IsValid)
-            {
-                if (permission.Equals("<EmptyPermission>"))
-                {
-                    InvokeClientCallback(client, command, callback);
-                    return ECommandAction.Stopped;
-                }
-                var admin = client.IsAuthenticated ? _clients.FindAdmin(client.SteamId) : null;
-                if (admin is not null && admin.HasPermission(permission)) InvokeClientCallback(client, command, callback);
-                else
-                {
-                    if (command.ChatTrigger) client.GetPlayerController()?.Print(HudPrintChannel.Chat, $" {ChatColor.Green}[MS] {ChatColor.Red}You have no permission to use this command!");
-                    else client.GetPlayerController()?.Print(HudPrintChannel.Console, "[MS] You have no permission to use this command!");
-                }
-            }
-            return ECommandAction.Stopped;
-        }
-
-        private void InvokeClientCallback(IGameClient client, StringCommand command, AdminCommandCallback callbacks)
-        {
-            foreach (var callback in callbacks.GetInvocationList())
-            {
-                try
-                {
-                    ((AdminCommandCallback)callback).Invoke(client, command);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "An error occurred while calling CommandCallback::{s}", command.CommandName);
-                }
-            }
-        }
-
         private ILocalizerManager? GetLocalizer()
         {
             if (_localizer?.Instance is null)
@@ -226,6 +210,21 @@ namespace MS_ForceInput
                 _localizer = _modules.GetOptionalSharpModuleInterface<ILocalizerManager>(ILocalizerManager.Identity);
             }
             return _localizer?.Instance;
+        }
+
+        private void TryResolveAdminManager()
+        {
+            if (_adminManager?.Instance is not null) return;
+
+            _adminManager = _modules!.GetOptionalSharpModuleInterface<IAdminManager>(IAdminManager.Identity);
+
+            if (_adminManager?.Instance is null)
+            {
+                _logger.LogWarning("AdminManager is not installed. Admin commands will not work.");
+                return;
+            }
+
+            InitializePermissions();
         }
 
         public IEnumerable<IBaseEntity> GetEntitiesByName(string name, Func<IBaseEntity, bool>? predicate = null)
