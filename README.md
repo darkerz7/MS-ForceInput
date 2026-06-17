@@ -2,7 +2,7 @@
 Allows admins to force inputs on entities. (ent_fire)
 
 ## Required packages:
-1. [ModSharp](https://github.com/Kxnrl/modsharp-public)
+1. [ModSharp](https://github.com/Kxnrl/modsharp-public) (min. git132)
 2. [LocalizerManager](https://github.com/Kxnrl/modsharp-public/tree/master/Sharp.Modules/LocalizerManager)
 3. [AdminManager](https://github.com/Kxnrl/modsharp-public/tree/master/Sharp.Modules/AdminManager)
 

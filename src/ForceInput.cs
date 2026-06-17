@@ -156,7 +156,7 @@ namespace MS_ForceInput
 
                 if (iFoundEnts == 0)
                 {
-                    foreach (var entity in GetEntitiesByClassname(sEntName.ToLower()))
+                    foreach (var entity in _entities.GetAllEntitiesByClassname(sEntName.ToLower()))
                     {
                         if (entity.IsValid())
                         {
@@ -231,16 +231,6 @@ namespace MS_ForceInput
         {
             IBaseEntity? entity = null;
             while ((entity = _entities.FindEntityByName(entity, name)) != null)
-            {
-                if (predicate is not null && !predicate(entity)) continue;
-                yield return entity;
-            }
-        }
-
-        public IEnumerable<IBaseEntity> GetEntitiesByClassname(string classname, Func<IBaseEntity, bool>? predicate = null)
-        {
-            IBaseEntity? entity = null;
-            while ((entity = _entities.FindEntityByClassname(entity, classname)) != null)
             {
                 if (predicate is not null && !predicate(entity)) continue;
                 yield return entity;
